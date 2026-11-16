@@ -24,6 +24,7 @@
   "cfg.groupByProject": "Group ports by project. When off, ports are listed flat (Pinned stays on top).",
   "welcome.empty": "No ports in use right now.\n[Kill Port...](command:whosOnMyPort.killPort)\n[Ports Reserved by Windows](command:whosOnMyPort.showReservedPorts)\n[Settings](command:workbench.action.openSettings?%5B%22whosOnMyPort%22%5D)",
   "cmd.refresh": "Refresh",
+  "cmd.findFreePort": "Check / Find Free Port...",
   "cmd.killPort": "Kill Port...",
   "cmd.killAllInWorkspace": "Kill All Ports in Workspace",
   "cmd.cleanOrphans": "Clean Up Orphaned Processes",

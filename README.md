@@ -23,6 +23,7 @@ When a terminal prints `EADDRINUSE`, click **Kill & Retry**. The process holding
 
 ## More
 
+- **Check / Find Free Port**: type a port to see whether it's free, who holds it, or whether Windows reserved it, and get the nearest free port copied to the clipboard.
 - **Restart** a dev server with the exact command that started it.
 - **Port History**: servers you started or stopped, across all your projects, with one-click *Run again*. Secrets like `API_KEY=…` are hidden before saving.
 - **Orphaned servers** left running after you closed a terminal are flagged and can be cleaned up in one go.

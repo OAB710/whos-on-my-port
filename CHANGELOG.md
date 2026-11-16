@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 — 2026-11-16
+
+- New: **Check / Find Free Port…** (`…` menu and Command Palette). Shows whether a port is free, who holds it or whether Windows reserved it, and suggests the nearest free port (skipping reserved ranges). Common dev ports are listed when nothing is typed.
+
 ## 0.2.3 — 2026-11-16
 
 - Fixed: *Port History…* did not open.

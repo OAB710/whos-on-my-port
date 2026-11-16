@@ -28,6 +28,11 @@
   "keywords": [
     "port",
     "kill port",
+    "free port",
+    "available port",
+    "port in use",
+    "tcp",
+    "dev server",
     "EADDRINUSE",
     "process",
     "taskkill",

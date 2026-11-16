@@ -8,6 +8,7 @@ import { SORT_KEYS } from '../core/sort';
 import type { PortEntry } from '../types';
 import type { Node, PortTreeProvider } from '../views/portTreeProvider';
 import type { CommandTracker } from './commandTracker';
+import { findFreePort } from './freePort';
 import { copyLanUrl, showQrCode } from './lan';
 import { reservedMessage, reservedRangeOf, showReservedPortsDocument } from './reservedPorts';
 import { restartEntry } from './restart';
@@ -212,6 +213,8 @@ export function registerCommands(
     }
     await killer.killMany(list, t('Stop {0} orphaned process(es)?', list.length));
   });
+
+  reg('findFreePort', (arg?: number | string) => findFreePort(service, killer, typeof arg === 'object' ? undefined : arg));
 
   reg('killPort', async (arg?: number | string) => {
     const direct = parsePort(arg === undefined ? undefined : String(arg));

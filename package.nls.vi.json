@@ -24,6 +24,7 @@
   "cfg.groupByProject": "Nhóm port theo dự án. Khi tắt, port hiện thành danh sách phẳng (nhóm Ghim vẫn ở trên cùng).",
   "welcome.empty": "Hiện không có port nào đang dùng.\n[Giải phóng port...](command:whosOnMyPort.killPort)\n[Port bị Windows giữ chỗ](command:whosOnMyPort.showReservedPorts)\n[Cài đặt](command:workbench.action.openSettings?%5B%22whosOnMyPort%22%5D)",
   "cmd.refresh": "Làm mới",
+  "cmd.findFreePort": "Kiểm tra / Tìm port trống...",
   "cmd.killPort": "Giải phóng port...",
   "cmd.killAllInWorkspace": "Dừng mọi port của workspace",
   "cmd.cleanOrphans": "Dọn tiến trình mồ côi",
