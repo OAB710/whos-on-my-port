@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-11-16
+
+- New icon: a glass magnifier looking into a socket.
+
 ## 0.2.0 — 2026-11-16
 
 First public preview (Windows only).
