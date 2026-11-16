@@ -69,7 +69,7 @@ export class PortInUseDetector implements vscode.Disposable {
     if (!holder) return; // already freed
 
     if (holder.blocked) {
-      void vscode.window.showWarningMessage(t('Port {0} is in use. {1}', port, blockMessage(holder.blocked)));
+      vscode.window.setStatusBarMessage('$(shield) ' + t('Port {0} is in use. {1}', port, blockMessage(holder.blocked)), 5000);
       return;
     }
 
@@ -92,7 +92,7 @@ export class PortInUseDetector implements vscode.Disposable {
 
     // Wait for the failed command to finish before re-running it.
     if (!(await this.tracker.waitForEnd(e.execution, 5000))) {
-      void vscode.window.showInformationMessage(t('Port {0} is free. The previous command is still running, so it was not restarted.', port));
+      vscode.window.setStatusBarMessage('$(info) ' + t('Port {0} is free. The previous command is still running, so it was not restarted.', port), 4000);
       return;
     }
     e.terminal.show(true);

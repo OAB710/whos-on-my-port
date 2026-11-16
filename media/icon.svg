@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d3557"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+  <!-- plug prongs -->
+  <path d="M51 22v20M77 22v20" stroke="#7dd3fc" stroke-width="9" stroke-linecap="round"/>
+  <!-- plug body -->
+  <path d="M36 42h56v13c0 15.5-12.5 28-28 28S36 70.5 36 55z" fill="#38bdf8"/>
+  <!-- cable -->
+  <path d="M64 83v12c0 7 5 11 12 11h14" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linecap="round"/>
+  <!-- "who's on it" status dot -->
+  <circle cx="98" cy="30" r="12" fill="#22c55e" stroke="#0b1220" stroke-width="5"/>
+</svg>

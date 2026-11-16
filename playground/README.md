@@ -10,6 +10,12 @@ Các dự án mẫu dùng Node thuần, **không cần `npm install`**.
 | `orphan-demo` | 4500 | Server tách rời (detached) → nhóm Orphaned |
 | `landing-page` | 5173 (0.0.0.0) | Cửa sổ thứ 2, cờ ⚠ LAN |
 
+## Bật / tắt nhanh tất cả server
+
+- `start-all-servers.cmd` — bật shop-app (:3000), api-multi (:4000, :4001), landing-page (:5173, LAN) và orphan-demo (:4500, mồ côi). Mỗi server một cửa sổ thu nhỏ tên `WOM-…`.
+- `stop-all-servers.cmd` — tắt các cửa sổ `WOM-…`. Server mồ côi :4500 được để lại để thử *Clean Up Orphaned Processes*.
+- Server bật bằng file này **không** chạy trong terminal VS Code, nên không có Restart / Kill & Retry / lệnh `npm run dev` trong History (History sẽ ghi `node …\server.js` khi bạn dừng chúng). Muốn thử các tính năng đó, chạy `npm run dev` trong terminal của cửa sổ test.
+
 ## Mở cửa sổ test (không cần F5)
 
 1. Nhấp đúp `playground\start-dev-host.cmd` → compile và mở **Extension Development Host** với workspace gồm 4 dự án (shop-app, api-multi, conflict-demo, orphan-demo).

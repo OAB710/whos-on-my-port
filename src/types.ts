@@ -51,6 +51,10 @@ export interface PortEntry {
   terminalPid?: number;
   /** Process directly under that terminal shell (the command it runs, e.g. npm), ancestor of `pid` or `pid` itself. */
   terminalChildPid?: number;
+  /** Working directory of the VS Code terminal (this or another window) that started it, if known. */
+  terminalCwd?: string;
+  /** Command line of the process directly under the user's shell (e.g. `node npm-cli.js run dev`). */
+  launcherCommandLine?: string;
   /** Started from a terminal of a VS Code window that doesn't run this extension. */
   unregisteredWindow?: boolean;
   elevated: boolean;

@@ -109,12 +109,12 @@ Hai tiến trình con được chạy **song song** (không tuần tự), ẩn c
 - Không dùng `wmic` (đã bị gỡ khỏi Windows 11 24H2).
 - Không dùng `Get-NetTCPConnection` làm đường chính vì chậm (≈1–2 s trên một số máy).
 
-### 4.3. Khi nào quét (0% CPU khi nghỉ)
+### 4.3. Khi nào quét (0% CPU khi view ẩn / cửa sổ không focus)
 | Sự kiện | Hành vi |
 |---|---|
 | View trở nên hiển thị | Quét 1 lần |
 | Bấm Refresh / sau khi kill (300 ms) | Quét 1 lần |
-| `autoRefreshSeconds > 0` **và** view đang hiển thị | Quét định kỳ; dừng timer khi view bị ẩn |
+| `liveRefresh` (mặc định **tắt**, bật trong menu `…` → *Auto Refresh*) **và** view đang hiển thị **và** cửa sổ đang focus (v2.4) | Mỗi `liveRefreshIntervalSeconds` (2 s) chỉ chạy `netstat -ano` (≈60 ms); quét đầy đủ khi tập `port:pid` khác lần quét đầy đủ gần nhất, và tối đa 30 s/lần để cập nhật bộ nhớ; vẽ lại cây (không quét) mỗi 30 s để uptime nhảy. Dừng timer ngay khi view ẩn hoặc cửa sổ mất focus |
 | Mở/đóng terminal (debounce 2 s) | Quét nếu view hiển thị **hoặc** status bar bật |
 | Khởi động (sau 3 s) | Quét 1 lần nếu status bar bật |
 | EADDRINUSE được phát hiện | Quét 1 lần |
@@ -268,7 +268,7 @@ Blocked **không bị tắt được bằng setting** ở v1.0 (an toàn là tí
 ### US-10 Ghim & theo dõi port
 - **AC1** Context menu *Pin Port* / *Unpin Port*; lệnh palette *Pin Port...* nhập số.
 - **AC2** Nhóm *Pinned* luôn hiển thị các port đã ghim: `🟢 :5432 free` hoặc `🔴 :5432 — postgres.exe`.
-- **AC3** Lưu vào setting `whosOnMyPort.pinnedPorts` ở cấp **Workspace** nếu có workspace, ngược lại cấp **User**.
+- **AC3** (v2.4) Lưu vào setting `whosOnMyPort.pinnedPorts` ở cấp **User** (dùng chung mọi dự án). Ngoại lệ: nếu `inspect()` cho thấy đã có giá trị ở cấp **Workspace** (người dùng chủ động ghi đè theo dự án) thì cập nhật đúng cấp đó, để ghim/bỏ ghim không bị giá trị workspace che mất.
 
 ### US-11 Tiện ích dòng
 - *Open in Browser* (`http://localhost:<port>`), *Copy PID*, *Copy Command Line*, *Open Project Folder* (khi có `projectPath`).
@@ -314,7 +314,11 @@ Ghép token, cách nhau bởi `.`: `port` + `killable` | `blocked` + `terminal`?
 ### 9.1. Settings
 | Key | Kiểu | Mặc định | Scope | Mô tả |
 |---|---|---|---|---|
-| `whosOnMyPort.autoRefreshSeconds` | number (0–3600) | `0` | user | Quét định kỳ khi view hiển thị. 0 = tắt |
+| `whosOnMyPort.liveRefresh` | boolean | `false` | user | Cập nhật thời gian thực khi view hiển thị và cửa sổ focus (§4.3) |
+| `whosOnMyPort.liveRefreshIntervalSeconds` | number (1–60) | `2` | user | Chu kỳ kiểm tra `netstat` của live refresh |
+| `whosOnMyPort.sortBy` | `port`\|`memory`\|`uptime`\|`name` | `port` | user | Thứ tự port trong mỗi dự án / danh sách phẳng |
+| `whosOnMyPort.groupByProject` | boolean | `true` | user | `false` = danh sách port phẳng (Pinned vẫn trên cùng) |
+| `whosOnMyPort.history.enabled` | boolean | `true` | user | Ghi Port History |
 | `whosOnMyPort.confirmBeforeKill` | boolean | `true` | user | Hỏi trước khi kill |
 | `whosOnMyPort.filterDevOnly` | boolean | `true` | user | Ẩn nhóm System |
 | `whosOnMyPort.customDevProcesses` | string[] | `[]` | user | Thêm tên tiến trình dev (không cần `.exe`) |
@@ -322,7 +326,7 @@ Ghép token, cách nhau bởi `.`: `port` + `killable` | `blocked` + `terminal`?
 | `whosOnMyPort.gracefulTimeoutMs` | number (500–15000) | `3000` | user | Thời gian chờ graceful trước khi force |
 | `whosOnMyPort.detectPortInUse` | boolean | `true` | user | Bắt EADDRINUSE trong terminal |
 | `whosOnMyPort.showStatusBar` | boolean | `true` | user | Hiển thị status bar |
-| `whosOnMyPort.pinnedPorts` | number[] | `[]` | resource | Port ghim |
+| `whosOnMyPort.pinnedPorts` | number[] | `[]` | resource | Port ghim. Ghi vào **User**, trừ khi đã có giá trị cấp Workspace (US-10 AC3) |
 
 ### 9.2. Danh sách dev process mặc định
 `node, bun, deno, npm, npx, yarn, pnpm, python, python3, pythonw, py, uvicorn, gunicorn, flask, java, javaw, kotlin, gradle, mvn, go, dlv, air, dotnet, iisexpress, ruby, rails, puma, php, php-cgi, httpd, apache, nginx, caddy, mysqld, mariadbd, postgres, mongod, redis-server, memurai, elasticsearch, rabbitmq-server, erl, beam.smp, cargo, hugo, ngrok, cloudflared, esbuild, docker, com.docker.backend, wslrelay` + `customDevProcesses`. Nguồn chân lý: `src/core/safety.ts` (`DEFAULT_DEV_PROCESSES`).
@@ -355,7 +359,7 @@ Tên dự án chỉ được suy từ đường dẫn (§5.4 bước 2) với de
 | Mã | Yêu cầu | Chỉ tiêu |
 |---|---|---|
 | NFR-01 | Thời gian quét | P95 ≤ 1,5 s; P50 ≤ 800 ms (Win11, SSD, ~300 tiến trình) |
-| NFR-02 | CPU khi nghỉ | 0% (không timer khi view ẩn và `autoRefreshSeconds = 0`) |
+| NFR-02 | CPU khi nghỉ | 0% khi view ẩn hoặc cửa sổ không focus (không timer). Khi live refresh chạy: 1 lần `netstat` (≈60 ms) mỗi 2 s, quét đầy đủ chỉ khi port thay đổi hoặc 30 s/lần |
 | NFR-03 | Bộ nhớ | ≤ 15 MB tăng thêm trên extension host |
 | NFR-04 | Kích thước gói `.vsix` | ≤ 200 KB, **0 runtime dependency** |
 | NFR-05 | Kích hoạt | `onStartupFinished`; activate ≤ 50 ms (không quét đồng bộ) |
@@ -438,6 +442,18 @@ Ràng buộc chung: **không thêm toast/notification** (ngoại lệ duy nhất
 | 1 | **Restart dev server** (`whosOnMyPort.restart`, inline `$(debug-restart)` giữa Copy URL và Kill + context menu) | `CommandTracker` nghe `onDidStart/EndTerminalShellExecution`, nhớ lệnh cuối (+cwd) theo terminal (bỏ qua confidence Low); `PortInUseDetector` dùng chung tracker. Token `restartable` khi port có `terminalPid` và biết lệnh. Luồng: xác nhận theo `confirmBeforeKill` → Killer (Ctrl+C → taskkill) → chờ execution kết thúc ≤5 s → nếu chưa, taskkill `terminalChildPid` (tiến trình con trực tiếp của shell, vd. `npm`) và chờ thêm 2 s → `shellIntegration.executeCommand(lệnh)`. Phản hồi bằng status bar. |
 | 2 | **Port bị Windows giữ chỗ** (Hyper-V/WSL `excludedportrange`) | Parser thuần `core/reservedPorts.ts` (chỉ đọc dòng 2 số + `*`, vì output netsh bị bản địa hoá). Provider `reservedPortRanges()` chạy `netsh interface ipv4/ipv6 show excludedportrange protocol=tcp`, cache 60 s, **chỉ gọi khi cần** (lỗi bind, Kill Port… với port rảnh, port ghim đang rảnh, lệnh Show). Pattern mới `findPortErrors` (kind `denied`): Node `EACCES`, Python `WinError 10013`/`Errno 13`, .NET "forbidden by its access permissions" — chỉ khi trích được số port. Khi lỗi `denied` hoặc không ai giữ port mà port nằm trong dải → cảnh báo "Port 3000 is reserved by Windows (Hyper-V/WSL range 2980–3079)" với một nút **How to fix**. Lệnh `whosOnMyPort.showReservedPorts` mở tài liệu Markdown untitled: danh sách dải + 3 cách sửa (`net stop/start winnat`, `netsh int ipv4 add excludedportrange …`, `netsh int ipv4 set dynamic tcp start=49152 num=16384`) — **không bao giờ tự chạy**. Port ghim rảnh mà bị giữ chỗ: icon `lock`, mô tả "reserved by Windows", bấm để mở hướng dẫn. |
 | 11 | **Test trên điện thoại** (`copyLanUrl`, `showQrCode` trong context menu khi có token `lan`) | `core/lanUrl.ts` (thuần, nhận dữ liệu `os.networkInterfaces()`): IPv4, không internal, bỏ `169.254.x`, card ảo (vEthernet/WSL/Hyper-V/VirtualBox/VMware/Docker) xếp sau; bind IP cụ thể thì dùng IP đó. Nhiều IP → QuickPick. QR: vendored Project Nayuki QR Code generator (MIT, `src/vendor/qrcodegen.ts`), ECC M → SVG ghi vào `globalStorage/qr/<port>.svg`, mở bằng image preview (`vscode.openWith … imagePreview.previewEditor`, fallback `vscode.open`). Tooltip port hiện LAN URL. |
+
+### 14.4. Tính năng v2.4 (đã cài đặt)
+Ràng buộc chung giữ nguyên §14.3: **không thêm toast**; phản hồi qua status bar (`setStatusBarMessage` ~2,5 s), cây, tooltip, QuickPick mở bằng lệnh chủ động, và hộp xác nhận kill dạng modal có sẵn (theo `confirmBeforeKill`). Không có menu quick-pick trên status bar.
+
+| # | Tính năng | Cách làm |
+|---|---|---|
+| 0 | **Port ghim lưu ở User settings** | `setPinned` ghi `ConfigurationTarget.Global`; nếu `inspect('pinnedPorts').workspaceValue` đã có (người dùng chủ động ghi đè theo dự án) thì ghi đúng cấp Workspace để không bị che. |
+| 1 | **Live refresh** (thay `autoRefreshSeconds`) | `features/liveRefresh.ts`: chuỗi `setTimeout` (không chồng tick) chỉ chạy khi view hiển thị **và** `window.state.focused` (`onDidChangeVisibility`, `onDidChangeWindowState`). Mỗi tick gọi `provider.listeningSockets()` (chỉ netstat), so `socketSignature` (tập `port:pid`, sắp xếp) với chữ ký của lần quét đầy đủ gần nhất (`PortState.signature`) → khác thì `service.scan()`; quét đầy đủ ít nhất 30 s/lần; vẽ lại cây mỗi 30 s. Sau lỗi quét, không quét lại quá 1 lần/30 s. Logic thuần: `core/liveRefresh.ts` (`decideTick`). Đo trên máy dev: netstat ≈60 ms/tick (38 listener), quét đầy đủ ≈1,1 s. |
+| 2 | **Chọn nhiều** | `createTreeView(..., { canSelectMany: true })`. Lệnh nhận `(clicked, selected)`; nếu `clicked` thuộc `selected` thì áp dụng cho cả nhóm (`core/selection.ts`). Kill / Force Kill / Kill All in Project: gom entry của port + dự án đã chọn, bỏ trùng PID, 1 lần xác nhận qua `Killer.killMany` (bỏ qua entry blocked). Copy URL nhiều dòng (xuống dòng), Open in Browser mở từng port. Phím tắt khi `focusedView == whosOnMyPort.ports && !inputFocus`: `Delete` = Kill, `Enter` = Open in Browser (không có tham số → dùng `view.selection`; dòng không phải port → `list.select`). |
+| 3 | **Port History** (`showHistory` trong menu `…` + Palette, `clearHistory`) | Chỉ ghi lệnh **thật sự mở port**: sau mỗi lần quét, entry có `terminalPid` mà terminal đó có lệnh đang chạy (`CommandTracker.lastCommand`, chưa kết thúc) → upsert bản ghi `{id, command (đã che), cwd, projectName, ports, terminalName, firstSeen, lastSeen, endedAt?, endReason?, exitCode?}`. Kết thúc: `onDidEnd` exit 0 → `stopped`, ≠0 → `crashed`, không rõ → `unknown`; `Killer.onWillKill/onDidKill` → `killed` (lý do đầu tiên thắng). **(v2.5)** Lưu `context.globalState` khoá `whosOnMyPort.history.v1` — **một danh sách chung cho mọi dự án** (không ghi file vào dự án), tối đa 100, gộp theo command+cwd (lên đầu); tự chuyển dữ liệu cũ từ `workspaceState`. Luôn đọc lại từ storage trước khi ghi (nhiều cửa sổ cùng ghi). Bản ghi đang chạy có `ownerPid` (extension host của cửa sổ chạy nó): khi mở lại, chỉ bản ghi có cửa sổ chủ đã chết mới chuyển `unknown`. **Dừng server chưa từng thấy khởi động** (chạy trước khi extension bật, ngoài terminal VS Code, do công cụ khác chạy): dựng lại lệnh từ cây tiến trình (`core/launchCommand.ts`: `launcherOf` lấy tiến trình ngay dưới shell của người dùng, ưu tiên npm/yarn/pnpm cao nhất trong chuỗi, bỏ qua shell bọc `cmd /c`, `bash -c`; `friendlyCommand` đổi `node …\npm-cli.js run dev` → `npm run dev`, gỡ `cmd /d /s /c`) và ghi `killed`; nhiều port cùng tiến trình bị dừng trong 5 s gộp một bản ghi. cwd lấy theo thứ tự: terminal cửa sổ này → terminal cửa sổ khác (registry) → thư mục dự án; không rõ cwd thì *Run again* chỉ gõ sẵn lệnh. QuickPick chia *Running* / *This workspace* / *Other projects*. Che bí mật (`core/redact.ts`): biến môi trường tên chứa key/token/secret/password/passwd/pwd/auth (POSIX, `$env:`, `set`), cờ CLI tên chứa token/password/secret/key (trừ cờ file/path/dir; `-p` giữ nguyên), Bearer, `sk-…`, `ghp_…`, `github_pat_…`, `xox?-…`, mật khẩu trong URL → `***`. QuickPick: nhóm *Running* / *Earlier*, label `:3000  npm run dev`, description `shop-app · 2h ago · stopped`, detail = cwd, nút ▶ Run again / 🗑 Remove, nút tiêu đề Clear. Run again: dùng lại terminal rảnh cùng cwd (có shell integration, lệnh cuối đã xong) hoặc `createTerminal({ name, cwd })`, chờ shell integration ≤3 s rồi `executeCommand`, fallback `sendText`. Lệnh có `***`: chỉ gõ sẵn (`sendText(cmd, false)`), không chạy. Setting `history.enabled`. |
+| 4 | **Sort By / Group by Project** | Submenu `Sort By` trong menu `…` (Port / Memory / Uptime / Name). API menu cho extension không có trạng thái `toggled`, nên mỗi mục có 2 lệnh (`sortByX` / `sortByXChecked` với tiêu đề `✓ X`) hiện theo context key `whosOnMyPort.sortBy`; tương tự `groupByProjectOn/Off` theo `whosOnMyPort.groupByProject`. Setting `sortBy` (port\|memory\|uptime\|name), `groupByProject`. Sắp xếp port trong từng dự án và trong danh sách phẳng; thứ tự dự án không đổi. Comparator thuần `core/sort.ts`. |
+| 5 | **Trạng thái rỗng** | Khi đã quét, không lỗi và không có gì để hiện: `getChildren` trả `[]`, context key `whosOnMyPort.empty` bật `viewsWelcome` "No ports in use right now." + nút Kill Port…, Ports Reserved by Windows, Settings. Trước lần quét đầu vẫn hiện "Scanning…". |
 
 ---
 

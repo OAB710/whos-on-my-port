@@ -1,5 +1,6 @@
 // Classifies listeners into Current / Other / Orphan / System. Pure, no 'vscode' import.
 import type { PortEntry, PortGroup, ProcInfo, ScanResult, WindowInfo } from '../types';
+import { launcherOf } from './launchCommand';
 import { baseName, findMentionedFolder, guessProjectPath, normalizePath } from './pathUtils';
 import { blockReason, isLoopback, stripExe } from './safety';
 
@@ -129,6 +130,9 @@ export function classify(scan: ScanResult, ctx: ClassifyContext): PortEntry[] {
 
     let group: PortGroup | undefined;
 
+    // What the user most likely ran to start this server (for Port History).
+    if (proc) entry.launcherCommandLine = launcherOf([proc, ...chain])?.commandLine ?? undefined;
+
     // 1-2. Terminal ancestry (most reliable).
     const lineage = [pid, ...chain.map((c) => c.pid)];
     let termCwd: string | undefined;
@@ -188,6 +192,8 @@ export function classify(scan: ScanResult, ctx: ClassifyContext): PortEntry[] {
     if (!entry.terminalPid && !otherTerm && isDev && broken && knownFolder) {
       group = 'orphan';
     }
+
+    if (termCwd) entry.terminalCwd = termCwd;
 
     // 6-7.
     if (!group) group = isDev ? 'other' : 'system';

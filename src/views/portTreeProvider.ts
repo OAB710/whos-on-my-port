@@ -8,6 +8,7 @@ import type { PortEntry } from '../types';
 import type { TrackedCommand } from '../features/commandTracker';
 import { entryLanUrls } from '../features/lan';
 import { formatRange, isReserved } from '../core/reservedPorts';
+import { sortEntries } from '../core/sort';
 import type { PortRange } from '../types';
 import { portUri, projectUri, thresholds, warningLines } from './warningDecorations';
 
@@ -55,6 +56,8 @@ export class PortTreeProvider implements vscode.TreeDataProvider<Node> {
   /** Windows-reserved ranges, fetched only while a pinned port is free. */
   private reserved: PortRange[] = [];
   private reservedKey = '';
+  /** Last value of the `whosOnMyPort.empty` context key (drives the viewsWelcome empty state). */
+  private empty?: boolean;
 
   constructor(
     service: PortService,
@@ -81,7 +84,7 @@ export class PortTreeProvider implements vscode.TreeDataProvider<Node> {
     if (!node) return this.roots();
     const pinned = new Set(cfg().pinnedPorts);
     if (node.kind === 'project') {
-      return node.entries.map((entry) => ({ kind: 'port', entry, pinned: pinned.has(entry.port), parentKey: node.key }));
+      return sortEntries(node.entries, cfg().sortBy).map((entry) => ({ kind: 'port', entry, pinned: pinned.has(entry.port), parentKey: node.key }));
     }
     if (node.kind === 'pinned') {
       if (node.ports.some((port) => !this.state.entries.some((e) => e.port === port))) this.refreshReserved();
@@ -157,8 +160,17 @@ export class PortTreeProvider implements vscode.TreeDataProvider<Node> {
     return out;
   }
 
+  private setEmpty(empty: boolean): void {
+    if (empty === this.empty) return;
+    this.empty = empty;
+    void vscode.commands.executeCommand('setContext', 'whosOnMyPort.empty', empty);
+  }
+
   private roots(): Node[] {
-    if (!this.loaded) return [{ kind: 'message', text: t('Scanning…'), icon: 'loading~spin' }];
+    if (!this.loaded) {
+      this.setEmpty(false);
+      return [{ kind: 'message', text: t('Scanning…'), icon: 'loading~spin' }];
+    }
     const out: Node[] = [];
     if (this.state.error) {
       out.push(
@@ -169,12 +181,20 @@ export class PortTreeProvider implements vscode.TreeDataProvider<Node> {
     const pinned = [...new Set(cfg().pinnedPorts)].sort((a, b) => a - b);
     if (pinned.length) out.push({ kind: 'pinned', ports: pinned });
 
+    const c = cfg();
     const projects = this.projects();
     this.projectCount = projects.length;
-    out.push(...projects);
-    if (projects.length === 0 && !this.state.error) {
-      out.push({ kind: 'message', text: t('No ports in use'), icon: 'circle-slash' });
+    if (c.groupByProject) {
+      out.push(...projects);
+    } else {
+      // Flat list: port leaves at the root (same entries as the groups, one row per port/PID).
+      const seen = new Set<string>();
+      const flat = projects.flatMap((p) => p.entries).filter((e) => !seen.has(`${e.port}:${e.pid}`) && !!seen.add(`${e.port}:${e.pid}`));
+      const pinnedSet = new Set(c.pinnedPorts);
+      out.push(...sortEntries(flat, c.sortBy).map<Node>((entry) => ({ kind: 'port', entry, pinned: pinnedSet.has(entry.port), parentKey: 'flat' })));
     }
+    // Nothing to show: return no children so the view shows its welcome content (viewsWelcome).
+    this.setEmpty(out.length === 0);
     return out;
   }
 
@@ -270,7 +290,7 @@ export class PortTreeProvider implements vscode.TreeDataProvider<Node> {
     if (up) parts.push(up);
     if (e.group === 'orphan') parts.push(t('orphaned'));
     if (e.lanExposed) parts.push('LAN');
-    if (parentKey === 'pinned' && e.projectName) parts.push(e.projectName);
+    if ((parentKey === 'pinned' || parentKey === 'flat') && e.projectName) parts.push(e.projectName);
     item.description = parts.join(' · ');
 
     item.iconPath = this.portIcon(e);

@@ -36,12 +36,23 @@ export interface KillOptions {
   noRefresh?: boolean;
 }
 
-export class Killer {
+export class Killer implements vscode.Disposable {
+  private readonly willKill = new vscode.EventEmitter<PortEntry>();
+  private readonly didKill = new vscode.EventEmitter<{ entry: PortEntry; ok: boolean }>();
+  /** Fires after confirmation, right before Ctrl+C / taskkill (Port History marks the run as killed). */
+  readonly onWillKill = this.willKill.event;
+  readonly onDidKill = this.didKill.event;
+
   constructor(private readonly service: PortService, private readonly log: vscode.LogOutputChannel) {}
+
+  dispose(): void {
+    this.willKill.dispose();
+    this.didKill.dispose();
+  }
 
   async kill(e: PortEntry, opts: KillOptions = {}): Promise<boolean> {
     if (e.blocked) {
-      void vscode.window.showWarningMessage(blockMessage(e.blocked));
+      vscode.window.setStatusBarMessage('$(shield) ' + blockMessage(e.blocked), 5000);
       return false;
     }
     const c = cfg();
@@ -51,19 +62,21 @@ export class Killer {
       if (pick !== stop) return false;
     }
 
+    this.willKill.fire(e);
     let ok = false;
     const terminal = e.terminalPid !== undefined ? this.service.terminals.get(e.terminalPid) : undefined;
     if (!opts.force && c.gracefulStop && terminal) {
       ok = await this.graceful(e, terminal, c.gracefulTimeoutMs);
     }
     if (!ok) ok = await this.force(e);
+    this.didKill.fire({ entry: e, ok });
 
     if (!opts.noRefresh) setTimeout(() => void this.service.scan(), 300);
     return ok;
   }
 
   /** Kills many entries after a single confirmation (when confirmBeforeKill is on). */
-  async killMany(entries: PortEntry[], title: string): Promise<void> {
+  async killMany(entries: PortEntry[], title: string, opts: Pick<KillOptions, 'force'> = {}): Promise<void> {
     const targets = entries.filter((e) => !e.blocked);
     if (targets.length === 0) return;
     if (cfg().confirmBeforeKill) {
@@ -75,7 +88,7 @@ export class Killer {
     // Same PID may hold several ports: kill each process once.
     const seen = new Set<number>();
     const unique = targets.filter((e) => !seen.has(e.pid) && seen.add(e.pid));
-    await Promise.all(unique.map((e) => this.kill(e, { skipConfirm: true, noRefresh: true })));
+    await Promise.all(unique.map((e) => this.kill(e, { skipConfirm: true, noRefresh: true, force: opts.force })));
     setTimeout(() => void this.service.scan(), 300);
   }
 
@@ -109,7 +122,7 @@ export class Killer {
     if (pick !== admin) return false;
     const r2 = await this.service.provider.killElevated(e.pid);
     this.log.info(`elevated taskkill PID ${e.pid}: ok=${r2.ok} ${r2.message ?? ''}`);
-    if (!r2.ok) void vscode.window.showInformationMessage(t('The process is still running (elevation cancelled or denied).'));
+    if (!r2.ok) vscode.window.setStatusBarMessage('$(info) ' + t('The process is still running (elevation cancelled or denied).'), 4000);
     return r2.ok;
   }
 }

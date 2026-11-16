@@ -3,6 +3,8 @@ import type { Killer } from '../core/killer';
 import { cfg, CONFIG, type PortService } from '../core/portService';
 import { toMarkdownTable } from '../core/markdownReport';
 import { formatMb } from '../core/runtime';
+import { entriesOf, portsOf, resolveTargets } from '../core/selection';
+import { SORT_KEYS } from '../core/sort';
 import type { PortEntry } from '../types';
 import type { Node, PortTreeProvider } from '../views/portTreeProvider';
 import type { CommandTracker } from './commandTracker';
@@ -22,12 +24,18 @@ function portOf(node?: Node): number | undefined {
   return undefined;
 }
 
+/**
+ * Pins live in USER settings, unless the user already set a per-project override
+ * (workspace / folder value) — then that level is updated, otherwise it would mask the change.
+ */
 async function setPinned(ports: number[]): Promise<void> {
-  const target = vscode.workspace.workspaceFolders?.length
-    ? vscode.ConfigurationTarget.Workspace
-    : vscode.ConfigurationTarget.Global;
+  const c = vscode.workspace.getConfiguration(CONFIG);
+  const info = c.inspect<number[]>('pinnedPorts');
+  // cfg() reads without a resource scope, so folder-level values (multi-root) never apply;
+  // in a single-folder window the folder settings ARE the workspace settings.
+  const target = info?.workspaceValue !== undefined ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
   const unique = [...new Set(ports)].sort((a, b) => a - b);
-  await vscode.workspace.getConfiguration(CONFIG).update('pinnedPorts', unique, target);
+  await c.update('pinnedPorts', unique, target);
 }
 
 function parsePort(s: string | undefined): number | undefined {
@@ -45,48 +53,79 @@ export function registerCommands(
   setDevFilter: (on: boolean) => Promise<void>,
   tree: PortTreeProvider,
   tracker: CommandTracker,
+  view: vscode.TreeView<Node>,
 ): void {
   const reg = (id: string, fn: (...args: any[]) => unknown) =>
     ctx.subscriptions.push(vscode.commands.registerCommand(`whosOnMyPort.${id}`, fn));
+  /** Clicked node, or the whole multi-selection it belongs to, or the view selection (keybindings). */
+  const targets = (clicked?: Node, selected?: readonly Node[]) => resolveTargets(clicked, selected, view.selection);
+
+  /** Kill / Force Kill for one or many selected nodes (ports + whole projects). */
+  const killTargets = (nodes: Node[], force: boolean) => {
+    const entries = entriesOf(nodes);
+    if (entries.length === 0) return;
+    const single = nodes.length === 1 && nodes[0].kind === 'port';
+    if (single) return killer.kill(entries[0], { force });
+    const project = nodes.length === 1 && nodes[0].kind === 'project' ? nodes[0] : undefined;
+    const title = project
+      ? t('Stop all processes of {0}?', project.name)
+      : t('Stop {0} selected process(es)?', entries.filter((e) => !e.blocked).length);
+    if (entries.every((e) => e.blocked)) {
+      vscode.window.setStatusBarMessage(`$(shield) ${t('Nothing to stop: the selected processes are protected.')}`, 2500);
+      return;
+    }
+    return killer.killMany(entries, title, { force });
+  };
 
   reg('refresh', () => service.scan());
+
+  // View options (overflow menu). "…Checked" twins only differ by their ✓ title (menus can't show a toggle state).
+  const setView = (key: 'sortBy' | 'groupByProject' | 'liveRefresh', value: unknown) =>
+    vscode.workspace.getConfiguration(CONFIG).update(key, value, vscode.ConfigurationTarget.Global);
+  for (const key of SORT_KEYS) {
+    const id = `sortBy${key[0].toUpperCase()}${key.slice(1)}`;
+    reg(id, () => setView('sortBy', key));
+    reg(`${id}Checked`, () => setView('sortBy', key));
+  }
+  reg('groupByProjectOn', () => setView('groupByProject', true));
+  reg('groupByProjectOff', () => setView('groupByProject', false));
+  reg('liveRefreshOn', () => setView('liveRefresh', true));
+  reg('liveRefreshOff', () => setView('liveRefresh', false));
   reg('showLogs', () => log.show());
   reg('filterOn', () => setDevFilter(true));
   reg('filterOff', () => setDevFilter(false));
 
-  reg('kill', (n?: Node) => {
-    const e = entryOf(n);
-    if (e) return killer.kill(e);
-  });
-  reg('killProject', (n?: Node) => {
-    if (n?.kind === 'project') return killer.killMany(n.entries, t('Stop all processes of {0}?', n.name));
-  });
+  reg('kill', (n?: Node, sel?: Node[]) => killTargets(targets(n, sel), false));
+  reg('killProject', (n?: Node, sel?: Node[]) => killTargets(targets(n, sel), false));
   reg('restart', (n?: Node) => {
     const e = entryOf(n);
     if (e) return restartEntry(e, service, killer, tracker, log);
   });
-  reg('forceKill', (n?: Node) => {
-    const e = entryOf(n);
-    if (e) return killer.kill(e, { force: true });
-  });
+  reg('forceKill', (n?: Node, sel?: Node[]) => killTargets(targets(n, sel), true));
 
-  reg('openBrowser', (n?: Node) => {
-    const port = portOf(n);
-    if (port) return vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+  reg('openBrowser', async (n?: Node, sel?: Node[]) => {
+    const nodes = targets(n, sel);
+    const ports = portsOf(nodes);
+    if (ports.length === 0) {
+      // Enter on a project / message row (keybinding): keep the default Enter behaviour (expand, run item command).
+      if (!n && nodes.length) await vscode.commands.executeCommand('list.select');
+      return;
+    }
+    for (const port of ports) await vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
   });
-  reg('copyUrl', async (n?: Node) => {
-    const port = portOf(n);
-    if (!port) return;
-    const url = `http://localhost:${port}`;
-    await vscode.env.clipboard.writeText(url);
-    vscode.window.setStatusBarMessage(`$(check) ${t('Copied {0}', url)}`, 2500);
+  reg('copyUrl', async (n?: Node, sel?: Node[]) => {
+    const urls = portsOf(targets(n, sel)).map((port) => `http://localhost:${port}`);
+    if (urls.length === 0) return;
+    await vscode.env.clipboard.writeText(urls.join('\n'));
+    const msg = urls.length === 1 ? t('Copied {0}', urls[0]) : t('Copied {0} URLs', urls.length);
+    vscode.window.setStatusBarMessage(`$(check) ${msg}`, 2500);
   });
 
   reg('revealTerminal', (n?: Node) => {
     const e = entryOf(n);
     const term = e?.terminalPid !== undefined ? service.terminals.get(e.terminalPid) : undefined;
     if (term) term.show();
-    else void vscode.window.showInformationMessage(t('The terminal is no longer open.'));
+    else vscode.window.setStatusBarMessage('$(info) ' + t('The terminal is no longer open.'), 4000);
   });
 
   reg('copyAsMarkdown', async () => {
@@ -129,7 +168,7 @@ export function registerCommands(
     const e = entryOf(n);
     if (!e) return;
     if (e.proc?.commandLine) return vscode.env.clipboard.writeText(e.proc.commandLine);
-    void vscode.window.showInformationMessage(t('Command line is not available (process runs with higher privileges).'));
+    vscode.window.setStatusBarMessage('$(info) ' + t('Command line is not available (process runs with higher privileges).'), 4000);
   });
   reg('openProjectFolder', (n?: Node) => {
     const folder = n?.kind === 'project' ? n.path : entryOf(n)?.projectPath;
@@ -158,7 +197,7 @@ export function registerCommands(
     const { entries } = await service.scan();
     const list = entries.filter((e) => e.group === 'current');
     if (list.length === 0) {
-      void vscode.window.showInformationMessage(t('No ports in this workspace.'));
+      vscode.window.setStatusBarMessage('$(info) ' + t('No ports in this workspace.'), 4000);
       return;
     }
     await killer.killMany(list, t('Stop all {0} process(es) using ports in this workspace?', list.length));
@@ -168,7 +207,7 @@ export function registerCommands(
     const { entries } = await service.scan();
     const list = entries.filter((e) => e.group === 'orphan');
     if (list.length === 0) {
-      void vscode.window.showInformationMessage(t('No orphaned processes found.'));
+      vscode.window.setStatusBarMessage('$(info) ' + t('No orphaned processes found.'), 4000);
       return;
     }
     await killer.killMany(list, t('Stop {0} orphaned process(es)?', list.length));
@@ -221,7 +260,7 @@ async function killByPort(port: number, service: PortService, killer: Killer): P
       vscode.window.setStatusBarMessage(`$(lock) ${reservedMessage(port, range)} — ${t('run "Show Ports Reserved by Windows" for fixes')}`, 6000);
       return;
     }
-    void vscode.window.showInformationMessage(t('Port {0} is free.', port));
+    vscode.window.setStatusBarMessage('$(info) ' + t('Port {0} is free.', port), 4000);
     return;
   }
   for (const h of holders) await killer.kill(h);

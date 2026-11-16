@@ -3,6 +3,8 @@ import { Killer } from './core/killer';
 import { cfg, CONFIG, PortService } from './core/portService';
 import { WindowRegistry } from './core/windowRegistry';
 import { CommandTracker } from './features/commandTracker';
+import { PortHistory, showHistory } from './features/history';
+import { LiveRefresh } from './features/liveRefresh';
 import { registerCommands } from './features/commands';
 import { PortInUseDetector } from './features/portInUseDetector';
 import { reservedRanges } from './features/reservedPorts';
@@ -38,7 +40,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     (e) => restartCommand(e, service, tracker),
     () => reservedRanges(service),
   );
-  const view = vscode.window.createTreeView('whosOnMyPort.ports', { treeDataProvider: tree, showCollapseAll: true });
+  const view = vscode.window.createTreeView('whosOnMyPort.ports', { treeDataProvider: tree, showCollapseAll: true, canSelectMany: true });
   const decorations = new WarningDecorationProvider(service, () => tree.projects());
   const statusBar = new PortStatusBar(service);
   // Activity Bar badge = ports of this workspace.
@@ -57,22 +59,33 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     await vscode.workspace.getConfiguration(CONFIG).update('filterDevOnly', on, vscode.ConfigurationTarget.Global);
   };
   await vscode.commands.executeCommand('setContext', 'whosOnMyPort.devFilter', cfg().filterDevOnly);
-  registerCommands(ctx, service, killer, log, setDevFilter, tree, tracker);
+  const setViewContext = () => {
+    const c = cfg();
+    void vscode.commands.executeCommand('setContext', 'whosOnMyPort.sortBy', c.sortBy);
+    void vscode.commands.executeCommand('setContext', 'whosOnMyPort.groupByProject', c.groupByProject);
+    void vscode.commands.executeCommand('setContext', 'whosOnMyPort.liveRefresh', c.liveRefresh);
+  };
+  setViewContext();
+  registerCommands(ctx, service, killer, log, setDevFilter, tree, tracker, view);
+
+  // Port History: one list for all projects (globalState); migrates the old per-workspace store.
+  const history = new PortHistory(ctx.globalState, ctx.workspaceState, service, tracker, killer, log);
+  ctx.subscriptions.push(
+    killer,
+    history,
+    vscode.commands.registerCommand('whosOnMyPort.showHistory', () => showHistory(history, tracker, log)),
+    vscode.commands.registerCommand('whosOnMyPort.clearHistory', () => {
+      history.clear();
+      vscode.window.setStatusBarMessage(`$(check) ${vscode.l10n.t('Port History cleared')}`, 2500);
+    }),
+  );
 
   // --- Scan scheduling: nothing runs while idle (NFR-02). ---
-  let timer: NodeJS.Timeout | undefined;
-  const restartTimer = () => {
-    if (timer) clearInterval(timer);
-    timer = undefined;
-    const secs = cfg().autoRefreshSeconds;
-    if (view.visible && secs > 0) timer = setInterval(() => void service.scan(), secs * 1000);
-  };
-  ctx.subscriptions.push({ dispose: () => timer && clearInterval(timer) });
-
+  // Live refresh polls netstat only while the view is visible and the window focused.
   ctx.subscriptions.push(
+    new LiveRefresh(service, view, () => tree.refreshView(), log),
     view.onDidChangeVisibility(() => {
       if (view.visible) void service.scan();
-      restartTimer();
     }),
   );
 
@@ -91,8 +104,14 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   ctx.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration(CONFIG)) return;
-      if (e.affectsConfiguration(`${CONFIG}.autoRefreshSeconds`)) restartTimer();
       if (e.affectsConfiguration(`${CONFIG}.showStatusBar`)) statusBar.applyVisibility();
+      if (
+        e.affectsConfiguration(`${CONFIG}.sortBy`) ||
+        e.affectsConfiguration(`${CONFIG}.groupByProject`) ||
+        e.affectsConfiguration(`${CONFIG}.liveRefresh`)
+      ) {
+        setViewContext();
+      }
       if (e.affectsConfiguration(`${CONFIG}.filterDevOnly`)) {
         void vscode.commands.executeCommand('setContext', 'whosOnMyPort.devFilter', cfg().filterDevOnly);
       }
