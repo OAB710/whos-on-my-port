@@ -1,7 +1,7 @@
 // Watches terminal command output (Shell Integration API, VS Code >= 1.93) for
 // "port already in use" errors and offers Kill & Retry.
 import * as vscode from 'vscode';
-import { blockMessage, describe, type Killer } from '../core/killer';
+import { blockMessage, type Killer } from '../core/killer';
 import { cfg, type PortService } from '../core/portService';
 import type { CommandTracker } from './commandTracker';
 import { findPortErrors, type PortErrorKind } from './portInUsePatterns';
@@ -79,7 +79,8 @@ export class PortInUseDetector implements vscode.Disposable {
     const command = e.execution.commandLine.value;
     const canRetry = !!command && !!e.terminal.shellIntegration;
     const actions = canRetry ? [retry, kill, show] : [kill, show];
-    const pick = await vscode.window.showWarningMessage(t('Port {0} is used by {1}.', port, describe(holder)), ...actions);
+    const who = t('{0} (PID {1})', holder.proc?.name ?? t('unknown'), holder.pid) + (holder.projectName ? ` — ${holder.projectName}` : '');
+    const pick = await vscode.window.showWarningMessage(t('Port {0} is used by {1}.', port, who), ...actions);
 
     if (pick === show) {
       await vscode.commands.executeCommand('whosOnMyPort.ports.focus');

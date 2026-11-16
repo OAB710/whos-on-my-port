@@ -301,7 +301,9 @@ export async function showHistory(h: PortHistory, tracker: CommandTracker, log: 
       vscode.window.setStatusBarMessage(`$(check) ${t('Port History cleared')}`, STATUS_MS);
     }),
   ];
-  await new Promise<void>((resolve) => subs.push(qp.onDidHide(() => resolve())));
+  const closed = new Promise<void>((resolve) => subs.push(qp.onDidHide(() => resolve())));
+  qp.show();
+  await closed;
   subs.forEach((d) => d.dispose());
   qp.dispose();
 }

@@ -7,3 +7,6 @@ out/test/**
 **/tsconfig.json
 node_modules/**
 playground/**
+media/demo.gif
+media/icon.svg
+*.vsix

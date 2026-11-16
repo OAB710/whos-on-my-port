@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 — 2026-11-16
+
+- Fixed: *Port History…* did not open.
+- Kill & Retry message no longer repeats the port number.
+- New Marketplace page with a demo.
+
 ## 0.2.2 — 2026-11-16
 
 - First release on the VS Code Marketplace (publisher `OAB714`).

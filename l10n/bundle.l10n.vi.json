@@ -150,5 +150,6 @@
   "Other projects": "Dự án khác",
   "No dev server has been recorded yet. Start one in a terminal, or stop one from the Ports view.": "Chưa ghi nhận dev server nào. Hãy chạy một server trong terminal, hoặc dừng một server từ view Ports.",
   "Enter = run again · dev servers you started or stopped, all projects": "Enter = chạy lại · các dev server bạn đã chạy hoặc dừng, mọi dự án",
-  "Folder unknown: cd into the project, then press Enter": "Không rõ thư mục: cd vào dự án rồi nhấn Enter"
+  "Folder unknown: cd into the project, then press Enter": "Không rõ thư mục: cd vào dự án rồi nhấn Enter",
+  "{0} (PID {1})": "{0} (PID {1})"
 }
