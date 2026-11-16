@@ -2,7 +2,7 @@
   "name": "whos-on-my-port",
   "displayName": "Who's On My Port",
   "description": "%ext.description%",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "OAB714",
   "license": "MIT",
   "icon": "media/icon.png",
