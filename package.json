@@ -1,0 +1,228 @@
+{
+  "name": "whos-on-my-port",
+  "displayName": "Who's On My Port",
+  "description": "%ext.description%",
+  "version": "0.1.0",
+  "publisher": "whos-on-my-port",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OAB710/whos-on-my-port.git"
+  },
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other",
+    "Debuggers"
+  ],
+  "keywords": [
+    "port",
+    "kill port",
+    "EADDRINUSE",
+    "process",
+    "taskkill",
+    "netstat",
+    "localhost"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "main": "./out/extension.js",
+  "l10n": "./l10n",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "whosOnMyPort",
+          "title": "%container.title%",
+          "icon": "$(plug)"
+        }
+      ]
+    },
+    "views": {
+      "whosOnMyPort": [
+        {
+          "id": "whosOnMyPort.ports",
+          "name": "%view.ports%"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "whosOnMyPort.ports",
+        "contents": "%welcome.unsupported%",
+        "when": "whosOnMyPort.unsupported"
+      }
+    ],
+    "commands": [
+      { "command": "whosOnMyPort.refresh", "title": "%cmd.refresh%", "category": "Who's On My Port", "icon": "$(refresh)" },
+      { "command": "whosOnMyPort.killPort", "title": "%cmd.killPort%", "category": "Who's On My Port", "icon": "$(debug-stop)" },
+      { "command": "whosOnMyPort.killAllInWorkspace", "title": "%cmd.killAllInWorkspace%", "category": "Who's On My Port", "icon": "$(clear-all)" },
+      { "command": "whosOnMyPort.cleanOrphans", "title": "%cmd.cleanOrphans%", "category": "Who's On My Port", "icon": "$(trash)" },
+      { "command": "whosOnMyPort.pinPort", "title": "%cmd.pinPort%", "category": "Who's On My Port", "icon": "$(pin)" },
+      { "command": "whosOnMyPort.filterOn", "title": "%cmd.filterOn%", "category": "Who's On My Port", "icon": "$(filter)" },
+      { "command": "whosOnMyPort.filterOff", "title": "%cmd.filterOff%", "category": "Who's On My Port", "icon": "$(filter-filled)" },
+      { "command": "whosOnMyPort.kill", "title": "%cmd.kill%", "category": "Who's On My Port", "icon": "$(trash)" },
+      { "command": "whosOnMyPort.copyUrl", "title": "%cmd.copyUrl%", "category": "Who's On My Port", "icon": "$(copy)" },
+      { "command": "whosOnMyPort.killProject", "title": "%cmd.killProject%", "category": "Who's On My Port", "icon": "$(debug-stop)" },
+      { "command": "whosOnMyPort.forceKill", "title": "%cmd.forceKill%", "category": "Who's On My Port" },
+      { "command": "whosOnMyPort.restart", "title": "%cmd.restart%", "category": "Who's On My Port", "icon": "$(debug-restart)" },
+      { "command": "whosOnMyPort.openBrowser", "title": "%cmd.openBrowser%", "category": "Who's On My Port", "icon": "$(link-external)" },
+      { "command": "whosOnMyPort.revealTerminal", "title": "%cmd.revealTerminal%", "category": "Who's On My Port", "icon": "$(terminal)" },
+      { "command": "whosOnMyPort.copyPid", "title": "%cmd.copyPid%", "category": "Who's On My Port" },
+      { "command": "whosOnMyPort.copyCommandLine", "title": "%cmd.copyCommandLine%", "category": "Who's On My Port" },
+      { "command": "whosOnMyPort.openProjectFolder", "title": "%cmd.openProjectFolder%", "category": "Who's On My Port" },
+      { "command": "whosOnMyPort.pin", "title": "%cmd.pin%", "category": "Who's On My Port", "icon": "$(pin)" },
+      { "command": "whosOnMyPort.unpin", "title": "%cmd.unpin%", "category": "Who's On My Port", "icon": "$(pinned)" },
+      { "command": "whosOnMyPort.showLogs", "title": "%cmd.showLogs%", "category": "Who's On My Port" },
+      { "command": "whosOnMyPort.copyAsMarkdown", "title": "%cmd.copyAsMarkdown%", "category": "Who's On My Port", "icon": "$(markdown)" },
+      { "command": "whosOnMyPort.copyLanUrl", "title": "%cmd.copyLanUrl%", "category": "Who's On My Port", "icon": "$(device-mobile)" },
+      { "command": "whosOnMyPort.showQrCode", "title": "%cmd.showQrCode%", "category": "Who's On My Port", "icon": "$(device-mobile)" },
+      { "command": "whosOnMyPort.showReservedPorts", "title": "%cmd.showReservedPorts%", "category": "Who's On My Port", "icon": "$(lock)" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "whosOnMyPort.refresh", "when": "view == whosOnMyPort.ports", "group": "navigation@1" },
+        { "command": "whosOnMyPort.filterOn", "when": "view == whosOnMyPort.ports && !whosOnMyPort.devFilter", "group": "navigation@2" },
+        { "command": "whosOnMyPort.filterOff", "when": "view == whosOnMyPort.ports && whosOnMyPort.devFilter", "group": "navigation@2" },
+        { "command": "whosOnMyPort.killPort", "when": "view == whosOnMyPort.ports", "group": "1_port@1" },
+        { "command": "whosOnMyPort.pinPort", "when": "view == whosOnMyPort.ports", "group": "1_port@2" },
+        { "command": "whosOnMyPort.copyAsMarkdown", "when": "view == whosOnMyPort.ports", "group": "2_misc@1" },
+        { "command": "whosOnMyPort.copyLanUrl", "title": "%cmd.copyLanUrl%", "category": "Who's On My Port", "icon": "$(device-mobile)" },
+      { "command": "whosOnMyPort.showQrCode", "title": "%cmd.showQrCode%", "category": "Who's On My Port", "icon": "$(device-mobile)" },
+      { "command": "whosOnMyPort.showReservedPorts", "when": "view == whosOnMyPort.ports", "group": "2_misc@2" },
+        { "command": "whosOnMyPort.showLogs", "when": "view == whosOnMyPort.ports", "group": "2_misc@9" }
+      ],
+      "view/item/context": [
+        { "command": "whosOnMyPort.killProject", "when": "view == whosOnMyPort.ports && viewItem =~ /^projectGroup\\b.*\\bkillable\\b/", "group": "inline@1" },
+        { "command": "whosOnMyPort.killProject", "when": "view == whosOnMyPort.ports && viewItem =~ /^projectGroup\\b.*\\bkillable\\b/", "group": "1_kill@1" },
+        { "command": "whosOnMyPort.openProjectFolder", "when": "view == whosOnMyPort.ports && viewItem =~ /^projectGroup\\b.*\\bhasPath\\b/", "group": "2_nav@1" },
+
+        { "command": "whosOnMyPort.openBrowser", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "inline@1" },
+        { "command": "whosOnMyPort.copyUrl", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "inline@2" },
+        { "command": "whosOnMyPort.restart", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\brestartable\\b/", "group": "inline@3" },
+        { "command": "whosOnMyPort.kill", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bkillable\\b/", "group": "inline@4" },
+
+        { "command": "whosOnMyPort.kill", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bkillable\\b/", "group": "1_kill@1" },
+        { "command": "whosOnMyPort.forceKill", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bkillable\\b/", "group": "1_kill@2" },
+        { "command": "whosOnMyPort.restart", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\brestartable\\b/", "group": "1_kill@3" },
+        { "command": "whosOnMyPort.revealTerminal", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bterminal\\b/", "group": "2_nav@1" },
+        { "command": "whosOnMyPort.openBrowser", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "2_nav@2" },
+        { "command": "whosOnMyPort.openProjectFolder", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bhasPath\\b/", "group": "2_nav@3" },
+        { "command": "whosOnMyPort.copyUrl", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "3_copy@1" },
+        { "command": "whosOnMyPort.copyLanUrl", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\blan\\b/", "group": "3_copy@2" },
+        { "command": "whosOnMyPort.showQrCode", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\blan\\b/", "group": "2_nav@4" },
+        { "command": "whosOnMyPort.copyPid", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "3_copy@3" },
+        { "command": "whosOnMyPort.copyCommandLine", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b/", "group": "3_copy@4" },
+        { "command": "whosOnMyPort.pin", "when": "view == whosOnMyPort.ports && viewItem =~ /^portItem\\b.*\\bunpinned\\b/", "group": "4_pin@1" },
+        { "command": "whosOnMyPort.unpin", "when": "view == whosOnMyPort.ports && viewItem =~ /^(portItem|freePort)\\b.*\\bpinned\\b/", "group": "4_pin@1" }
+      ],
+      "commandPalette": [
+        { "command": "whosOnMyPort.filterOn", "when": "false" },
+        { "command": "whosOnMyPort.filterOff", "when": "false" },
+        { "command": "whosOnMyPort.kill", "when": "false" },
+        { "command": "whosOnMyPort.killProject", "when": "false" },
+        { "command": "whosOnMyPort.forceKill", "when": "false" },
+        { "command": "whosOnMyPort.restart", "when": "false" },
+        { "command": "whosOnMyPort.copyLanUrl", "when": "false" },
+        { "command": "whosOnMyPort.showQrCode", "when": "false" },
+        { "command": "whosOnMyPort.openBrowser", "when": "false" },
+        { "command": "whosOnMyPort.copyUrl", "when": "false" },
+        { "command": "whosOnMyPort.revealTerminal", "when": "false" },
+        { "command": "whosOnMyPort.copyPid", "when": "false" },
+        { "command": "whosOnMyPort.copyCommandLine", "when": "false" },
+        { "command": "whosOnMyPort.openProjectFolder", "when": "false" },
+        { "command": "whosOnMyPort.pin", "when": "false" },
+        { "command": "whosOnMyPort.unpin", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "Who's On My Port",
+      "properties": {
+        "whosOnMyPort.autoRefreshSeconds": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 3600,
+          "markdownDescription": "%cfg.autoRefreshSeconds%"
+        },
+        "whosOnMyPort.confirmBeforeKill": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.confirmBeforeKill%"
+        },
+        "whosOnMyPort.filterDevOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.filterDevOnly%"
+        },
+        "whosOnMyPort.customDevProcesses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "%cfg.customDevProcesses%"
+        },
+        "whosOnMyPort.gracefulStop": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.gracefulStop%"
+        },
+        "whosOnMyPort.gracefulTimeoutMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 500,
+          "maximum": 15000,
+          "description": "%cfg.gracefulTimeoutMs%"
+        },
+        "whosOnMyPort.detectPortInUse": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.detectPortInUse%"
+        },
+        "whosOnMyPort.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.showStatusBar%"
+        },
+        "whosOnMyPort.memoryWarningMB": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 0,
+          "markdownDescription": "%cfg.memoryWarningMB%"
+        },
+        "whosOnMyPort.longRunningHours": {
+          "type": "number",
+          "default": 8,
+          "minimum": 0,
+          "markdownDescription": "%cfg.longRunningHours%"
+        },
+        "whosOnMyPort.pinnedPorts": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 65535 },
+          "default": [],
+          "scope": "resource",
+          "description": "%cfg.pinnedPorts%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run compile && node --test out/test/",
+    "package": "vsce package",
+    "publish:vsce": "vsce publish",
+    "publish:ovsx": "ovsx publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.93.0",
+    "@vscode/vsce": "^3.0.0",
+    "ovsx": "^0.10.0",
+    "typescript": "^5.4.0"
+  }
+}

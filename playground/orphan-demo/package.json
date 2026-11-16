@@ -1,0 +1,1 @@
+{ "name": "orphan-demo", "private": true, "scripts": { "dev": "node launcher.js" } }

@@ -1,0 +1,9 @@
+.vscode/**
+.github/**
+src/**
+docs/**
+out/test/**
+**/*.map
+**/tsconfig.json
+node_modules/**
+playground/**

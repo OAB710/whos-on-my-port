@@ -1,0 +1,12 @@
+{
+  "folders": [
+    { "path": "shop-app" },
+    { "path": "api-multi" },
+    { "path": "conflict-demo" },
+    { "path": "orphan-demo" }
+  ],
+  "settings": {
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.shellIntegration.enabled": true
+  }
+}
