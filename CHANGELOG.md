@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 — 2026-11-16
+
+- First release on the VS Code Marketplace (publisher `OAB714`).
+
 ## 0.2.1 — 2026-11-16
 
 - New icon: a glass magnifier looking into a socket.
